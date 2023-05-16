@@ -21,8 +21,17 @@ const getTypeColor = (type) => {
   );
 };
 
+const getOnlyFulfilled = async ({ func, arr }) => {
+  const promises = arr.map(func);
+  const responses = await Promise.allSettled(promises);
+  return responses.filter((response) => response.status === "fulfilled");
+};
+
 const getPokemonsType = async (pokeApiResults) => {
-  const promises = pokeApiResults.map((result) => fetch(result.url));
+  const promises = await getOnlyFulfilled({
+    arr: pokeApiResults,
+    func: (result) => fetch(result.url),
+  });
   const responses = await Promise.allSettled(promises); // allSettled espera todas as promises serem resolvidas, e resultado final de forma eficiente
   const fulfilled = responses.filter(
     (response) => response.status === "fulfilled"
@@ -40,6 +49,15 @@ const getPokemonsIds = (pokeApiResults) =>
     return urlsArray.at(urlsArray.length - 2);
   });
 
+const getPokemonsImgs = async (ids) => {
+  const promises = ids.map((id) => fetch(`./assets/img/${id}.png`));
+  const responses = await Promise.allSettled(promises);
+  const fulfilled = responses.filter(
+    (response) => response.status === "fulfilled"
+  );
+  return fulfilled.map((response) => response.value.url);
+};
+
 const handlePageLoaded = async () => {
   try {
     const response = await fetch(
@@ -53,8 +71,9 @@ const handlePageLoaded = async () => {
     const { results: pokeApiResults } = await response.json();
     const types = await getPokemonsType(pokeApiResults);
     const ids = getPokemonsIds(pokeApiResults);
+    const imgs = await getPokemonsImgs(ids);
 
-    console.log(ids)
+    console.log(imgs);
   } catch (error) {
     console.log("Algo deu errado:", error);
   }
